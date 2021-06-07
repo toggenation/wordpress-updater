@@ -1,14 +1,38 @@
 
 
 
+# find all Wordpress installs
 WP_SITES=`find /var/www -regex '.*web/wp-config\.php'`
 
+# path to wp-cli
 WP=/usr/local/bin/wp
 
 
 for i in $WP_SITES
 do
+
+	# get the full path to the wp install
 	WP_DIR=$(dirname $i)
-	SITE_URL=`$WP --path=$WP_DIR option get siteurl --format=json`
-	PLUGIN_LIST=`$WP --path=$WP_DIR plugin list --format=json`
+
+	# get the owner so we run the upgrade as the correct user
+	OWNER=`stat -c %U $WP_DIR`
+	echo "Owner $OWNER"
+	
+	# so we can echo the installation we are upgrading
+	SITE_URL=`$WP --path=$WP_DIR option get siteurl`
+
+	# list the plugins and available upgrades
+	$WP --path=$WP_DIR plugin list
+	echo -n "Do you want update all plugins for $SITE_URL: [N/y] "
+        read R
+	case $R in
+		Y|y)
+			echo "Running update all plugins for $SITE_URL"
+			sudo -u $OWNER $WP --path=$WP_DIR plugin update --all
+			;;
+		*)
+		echo "Skipping update all for $SITE_URL"
+		;;
+	esac
+
 done
