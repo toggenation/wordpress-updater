@@ -35,4 +35,30 @@ do
 		;;
 	esac
 
+	$WP --path=$WP_DIR theme list
+	echo -n "Do you want to update all themes for $SITE_URL: [N/y] "
+	read R
+	case $R in 
+		Y|y)
+			echo "Running update of all themes for $SITE_URL"
+			sudo -u $OWNER $WP --path=$WP_DIR theme update --all
+			;;
+		*)
+			echo "Skipping update of all themes for $SITE_URL"
+			;;
+	esac
+
+	$WP --path=$WP_DIR core check-update
+	echo -n "Do you want to update wp core for $SITE_URL: [N/y] "
+	read R
+	case $R in 
+		Y|y)
+			echo "Running wp core update for $SITE_URL"
+			sudo -u $OWNER $WP --path=$WP_DIR core update
+			;;
+		*)
+			echo "Skipping update of core for $SITE_URL"
+			;;
+	esac
+
 done
