@@ -8,7 +8,15 @@ Allows you to loop through Worpdress sites on a webserver and select N to skip o
 2. Set the root of your sites in the script
 
 
+To be prompted to do each core, plugin or theme update
+
 ```
-update-wp.sh
+update-wp.sh 
+```
+
+To just install everything with no prompting
+
+```
+update-wp.sh y
 ```
 
