@@ -25,6 +25,15 @@ for i in $WP_SITES
 do
 	# get the full path to the wp install
 	WP_DIR=$(dirname $i)
+	TMP_DIR=$(dirname $WP_DIR)/tmp
+
+	# change to somewhere writeable by the sudo -u $OWNER	
+	[ -d "$TMP_DIR" ] && cd "$TMP_DIR"
+
+	# WP_RUN="php -d upload_tmp_dir=$TMP_DIR -d system_tmp_dir=$TMP_DIR $WP"
+
+	echo $WP_RUN
+#	continue;
 
 	# get the owner so we run the upgrade as the correct user
 	OWNER=`stat -c %U $WP_DIR`
