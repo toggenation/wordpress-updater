@@ -1,8 +1,17 @@
 #!/bin/bash
 
+# Where your sites are located
+# e.g. 
+# for this setup:
+# /var/www/wpsite1/cms/wp-config.php
+# /var/www/wpsite2/cms/wp-config.php
+# sites root is:
+# /var/www
+
+SITES_ROOT=/var/www
 
 # find all Wordpress installs
-WP_SITES=`find /var/www -regex '.*web/wp-config\.php'`
+WP_SITES=`find ${SITES_ROOT} -regex '.*web/wp-config\.php'`
 
 # path to wp-cli
 WP=/usr/local/bin/wp
