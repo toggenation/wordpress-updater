@@ -1,0 +1,26 @@
+{
+    "name": "toggenation/wordpress-updater",
+    "description": "Update multiple Wordpress Installs",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Toggenation\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "James McDonald",
+            "email": "james@toggen.com.au"
+        }
+    ],
+    "require": {
+        "wp-cli/wp-cli-bundle": "^2.8",
+        "wp-cli/doctor-command": "^2.1"
+    },
+    "scripts": {
+        "wpu": [
+            "Toggenation\\WordpressUpdater::run"
+        ]
+    }
+}
