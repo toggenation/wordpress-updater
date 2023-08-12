@@ -94,6 +94,8 @@ do
 			echo "Skipping update of core for $SITE_URL"
 			;;
 	esac
+	
+	wp --path=$WP_DIR cache flush
 
 	wp --path=$WP_DIR plugin is-installed w3-total-cache
 	if [ "$?" = "0" ];
