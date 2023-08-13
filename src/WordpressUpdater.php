@@ -20,7 +20,9 @@ use Exception;
  * 
  * and perform Wordpress theme, plugin and core updates
  * 
- * composer wpu -- --root=/var/www
+ * use --only to limit it to one wordpress install
+ * 
+ * composer wpu -- --root=/var/www --only=jmcd
  * 
  * @package Toggenation
  */
