@@ -6,6 +6,24 @@ use Composer\Script\Event;
 use Composer\Installer\PackageEvent;
 use Exception;
 
+/**
+ * 
+ * if sites are in siteRoot is /var/www
+ *      /var/www
+ *          /username/web/
+ *          /username2/web/
+ * 
+ * this script will find the wordpress installs and 
+ * loop through each siteDir:
+ *      /var/www/username/web/
+ *      /var/www/username2/web/
+ * 
+ * and perform Wordpress theme, plugin and core updates
+ * 
+ * composer wpu -- --root=/var/www
+ * 
+ * @package Toggenation
+ */
 class WordpressUpdater
 {
     private string $wp = '';
@@ -88,11 +106,17 @@ class WordpressUpdater
         return $this->userName;
     }
 
-    private function getSites(?string $siteRoot = null)
+    private function getSites(?string $siteRoot = null, ?string $only = null)
     {
         $glob = glob($siteRoot . '/*/web/wp-config\.php');
 
         $files = array_map('dirname', $glob);
+
+        if ($only) {
+            $files = array_filter($files, function ($siteDir) use ($only) {
+                return strpos($siteDir, "/{$only}/") !== false;
+            });
+        }
 
         if (empty($files)) {
             throw new Exception("No valid wordpress installs found in $siteRoot");
@@ -111,20 +135,40 @@ class WordpressUpdater
                     throw new Exception("$siteRoot is not a valid directory");
                 }
 
+                $this->siteRoot = $siteRoot;
+
                 return $siteRoot;
+            }
+        }
+
+        return $this->siteRoot;
+    }
+
+    private function parseOnly($args)
+    {
+        foreach ($args as $arg) {
+            if (strpos($arg, '--only=') !== false) {
+                $only =  explode('=', $arg)[1];
+
+                if (!is_dir($this->siteRoot . '/' . $only)) {
+                    throw new Exception("'{$only}' is not a valid directory");
+                }
+
+                return $only;
             }
         }
 
         return null;
     }
-
     public static function run(Event $event)
     {
         $wpu = new WordpressUpdater();
 
         $siteRoot = $wpu->parseSiteRoot($event->getArguments());
 
-        $siteDirs = $wpu->getSites($siteRoot);
+        $only = $wpu->parseOnly($event->getArguments());
+
+        $siteDirs = $wpu->getSites($siteRoot, $only);
 
         foreach ($siteDirs as $siteDir) {
             $wpu->siteDir = $siteDir;

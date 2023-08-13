@@ -22,5 +22,8 @@
         "wpu": [
             "Toggenation\\WordpressUpdater::run"
         ]
+    },
+    "scripts-descriptions": {
+        "wpu": "Run wp-cli update on all wordpress sites"
     }
 }
