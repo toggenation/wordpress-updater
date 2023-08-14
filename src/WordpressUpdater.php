@@ -3,26 +3,20 @@
 namespace Toggenation;
 
 use Composer\Script\Event;
-use Composer\Installer\PackageEvent;
 use Exception;
 
 /**
  * 
- * if sites are in siteRoot is /var/www
- *      /var/www
- *          /username/web/
- *          /username2/web/
+ * Finds and updates Wordpress plugins, core & themes 
+ * using a pattern of /var/www/*\/web/wp-config\.php
  * 
- * this script will find the wordpress installs and 
- * loop through each siteDir:
- *      /var/www/username/web/
- *      /var/www/username2/web/
+ * ## Examples
+ *      ### Run with composer
+ *      #### Change the root
+ *      $ composer wpu -- --root=/var/sites
  * 
- * and perform Wordpress theme, plugin and core updates
- * 
- * use --only to limit it to one wordpress install
- * 
- * composer wpu -- --root=/var/www --only=jmcd
+ *      #### Select an individual site
+ *      $ composer wpu -- --only=dir1
  * 
  * @package Toggenation
  */
@@ -36,11 +30,28 @@ class WordpressUpdater
 
     private string $siteDir  = '';
 
+    private string $dirPattern = '/*/web/wp-config.php';
+
     private function __construct()
     {
         define('VENDOR', __DIR__ . '/../vendor/');
 
-        $this->wp = VENDOR . 'bin/wp';
+        $this->wp = realpath(VENDOR . '/wp-cli/wp-cli/bin/wp');
+
+        $this->dd("WP-cli path: {$this->wp}");
+    }
+
+    private function dd($content, $die = false)
+    {
+        $line = debug_backtrace()[0]['line'];
+
+        echo "Line: {$line} - ";
+
+        echo print_r($content, true) . "\n";
+
+        if ($die) {
+            die;
+        }
     }
 
     private function getSiteUrl()
@@ -70,8 +81,19 @@ class WordpressUpdater
 
     /**
      * Builds a command line for wp-cli
-     * e.g.
-     * sudo -u username /path/to/vendor/bin/wp --path=/path/to/wordpress cache flush all
+     * ## Example
+     * sudo -u your_username /path/to/vendor/bin/wp --path=/path/to/wordpress cache flush all
+     * 
+     * The user running this will need to have sudo access to elevate to each user
+     * 
+     * Warning be careful how many perms you give permissions to
+     * 
+     * visudo -f /etc/sudoers.d/your_username
+     * 
+     * Content of /etc/sudoers.d/your_username
+     * 
+     * your_username ALL=(ALL) NOPASSWD: /home/your_username/wordpress-updater/vendor/wp-cli/wp-cli/bin
+     * 
      * 
      * @param array $command 
      * @return void 
@@ -108,9 +130,18 @@ class WordpressUpdater
         return $this->userName;
     }
 
-    private function getSites(?string $siteRoot = null, ?string $only = null)
+    /**
+     * return a list of directories under $siteRoot 
+     * that contain a wp-config.php
+     * @return array
+     */
+    private function getSites(?string $siteRoot = null, ?string $only = null): array
     {
-        $glob = glob($siteRoot . '/*/web/wp-config\.php');
+        $searchPattern = $siteRoot . $this->dirPattern;
+
+        $this->dd("Looking for sites in {$searchPattern}");
+
+        $glob = glob($searchPattern);
 
         $files = array_map('dirname', $glob);
 
@@ -127,40 +158,40 @@ class WordpressUpdater
         return $files;
     }
 
-    private function parseSiteRoot($args)
+    private function findArg($argument, $arguments): ?string
     {
-        foreach ($args as $arg) {
-            if (strpos($arg, '--root=') !== false) {
-                $siteRoot =  explode('=', $arg)[1];
-
-                if (!is_dir($siteRoot)) {
-                    throw new Exception("$siteRoot is not a valid directory");
-                }
-
-                $this->siteRoot = $siteRoot;
-
-                return $siteRoot;
+        foreach ($arguments as $arg) {
+            if (strpos($arg, "--{$argument}=") !== false) {
+                $argVal =  explode('=', $arg)[1];
+                return $argVal;
             }
         }
+
+        return null;
+    }
+
+    private function parseSiteRoot($args)
+    {
+        $siteRoot = $this->findArg('root', $args);
+
+        if (!empty($siteRoot) && !is_dir($siteRoot)) {
+            throw new Exception("$siteRoot is not a valid site root directory");
+        }
+
+        $this->siteRoot = $siteRoot ?? $this->siteRoot;
 
         return $this->siteRoot;
     }
 
     private function parseOnly($args)
     {
-        foreach ($args as $arg) {
-            if (strpos($arg, '--only=') !== false) {
-                $only =  explode('=', $arg)[1];
+        $only = $this->findArg('only', $args);
 
-                if (!is_dir($this->siteRoot . '/' . $only)) {
-                    throw new Exception("'{$only}' is not a valid directory");
-                }
-
-                return $only;
-            }
+        if (!empty($only) && !is_dir($this->siteRoot . '/' . $only)) {
+            throw new Exception("'{$only}' is not a valid site directory");
         }
 
-        return null;
+        return $only;
     }
     public static function run(Event $event)
     {
