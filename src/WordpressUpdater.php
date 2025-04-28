@@ -44,9 +44,7 @@ class WordpressUpdater
 
 	$this->setConfig();
 
-
 	$this->wp = VENDOR . '/wp-cli/wp-cli/bin/wp';
-
 	    
         $this->dd("WP-cli path: {$this->wp}");
     }
@@ -62,7 +60,6 @@ class WordpressUpdater
     }
 
     private function checkConfig($config) {
-	    $this->dd($config);
 	    foreach($this->configSettings as $setting) {
 		    if(!in_array($setting, $config)) {
 			    throw new \InvalidArgumentException("Missing $setting from config array");
