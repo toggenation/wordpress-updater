@@ -74,6 +74,10 @@ class WordpressUpdater
         return $this->exec(['core', 'update']);
     }
 
+    private function clearCliCache()
+    {
+        return $this->exec(['cli', 'cache', 'clear']);
+    }
     private function flushCache()
     {
         return $this->exec(['cache', 'flush', 'all']);
@@ -210,7 +214,8 @@ class WordpressUpdater
             $wpu->updatePlugins();
             $wpu->updateThemes();
             $wpu->updateCore();
-            $wpu->flushCache();
+	    $wpu->flushCache();
+	    $wpu->clearCliCache();
         }
     }
 }
