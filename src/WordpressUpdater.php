@@ -32,13 +32,42 @@ class WordpressUpdater
 
     private string $dirPattern = '/*/web/wp-config.php';
 
+    private array $configSettings = ['SITE_ROOT', 'DIR_PATTERN'];
+
     private function __construct()
     {
-        define('VENDOR', __DIR__ . '/../vendor/');
+        define('ROOT', realpath(__DIR__ . '/../'));
 
-        $this->wp = realpath(VENDOR . '/wp-cli/wp-cli/bin/wp');
+        define('CONFIG', ROOT . '/config');
 
+	define('VENDOR', ROOT . '/vendor');
+
+	$this->setConfig();
+
+
+	$this->wp = VENDOR . '/wp-cli/wp-cli/bin/wp';
+
+	    
         $this->dd("WP-cli path: {$this->wp}");
+    }
+
+    private function setConfig(){
+	$config = include(CONFIG . '/config.php');
+
+	$this->checkConfig($this->configSettings, $config);
+
+	$this->siteRoot = $config['SITE_ROOT'];
+
+	$this->dirPattern = $config['DIR_PATTERN'];
+    }
+
+    private function checkConfig($config) {
+	    $this->dd($config);
+	    foreach($this->configSettings as $setting) {
+		    if(!in_array($setting, $config)) {
+			    throw new \InvalidArgumentException("Missing $setting from config array");
+		    }
+	    }
     }
 
     private function dd($content, $die = false)
