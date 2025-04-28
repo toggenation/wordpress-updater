@@ -151,13 +151,11 @@ class WordpressUpdater
         };
     }
 
-    private function getOwnerName()
+    private function setSiteOwnerUserName(): void
     {
         $stats = lstat($this->siteDir);
 
         $this->userName = posix_getpwuid($stats['uid'])['name'];
-
-        return $this->userName;
     }
 
     /**
@@ -235,7 +233,7 @@ class WordpressUpdater
 
         foreach ($siteDirs as $siteDir) {
             $wpu->siteDir = $siteDir;
-            $wpu->getOwnerName();
+            $wpu->setSiteOwnerUserName();
             $wpu->getSiteUrl();
             $wpu->updatePlugins();
             $wpu->updateThemes();
