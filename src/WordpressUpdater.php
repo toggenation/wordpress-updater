@@ -100,6 +100,18 @@ class WordpressUpdater
         return $this->exec(['core', 'update']);
     }
 
+    private function updateLanguageCore()
+    {
+	    return $this->exec(['language', 'core', 'update']);
+    }
+
+
+    /**
+     * wp-cli stores downloaded files in ~/.wpi-cli/cache and because each 
+     * site might be owned by a different Operating System user the downloads
+     * are not reused for multiple sites so clear the above mentioned directory each run
+     *
+     */
     private function clearCliCache()
     {
         return $this->exec(['cli', 'cache', 'clear']);
@@ -237,7 +249,8 @@ class WordpressUpdater
             $wpu->getSiteUrl();
             $wpu->updatePlugins();
             $wpu->updateThemes();
-            $wpu->updateCore();
+	    $wpu->updateCore();
+	    $wpu->updateLanguageCore();
 	    $wpu->flushCache();
 	    $wpu->clearCliCache();
         }
