@@ -22,7 +22,8 @@ use Exception;
  */
 class WordpressUpdater
 {
-    private string $wp = '';
+	private string $wp = '';
+	private $skipUpdate = [];
 
     private string $userName = '';
 
@@ -55,6 +56,8 @@ class WordpressUpdater
 	$this->checkConfig($this->configSettings, $config);
 
 	$this->siteRoot = $config['SITE_ROOT'];
+
+	$this->skipUpdate = $config['SKIP_UPDATE'];
 
 	$this->dirPattern = $config['DIR_PATTERN'];
     }
@@ -170,6 +173,28 @@ class WordpressUpdater
         $this->userName = posix_getpwuid($stats['uid'])['name'];
     }
 
+
+    private function filterSkipped(array $filesArray = []): array 
+    {
+	    $toSkip = array_map(function($siteSlug) {
+		    return $this->siteRoot . '/' . $siteSlug ;
+	    }, $this->skipUpdate);
+
+	    $filtered = array_filter($filesArray, function($value) use ($toSkip) {
+		   $match = true;
+
+		    foreach($toSkip as $skipThis) {
+			if (str_starts_with($value, $skipThis)) {
+				$match = false;
+			}
+		    }
+
+		   return $match;
+	    });
+
+
+	    $this->dd($filtered, true);
+    }
     /**
      * return a list of directories under $siteRoot 
      * that contain a wp-config.php
@@ -183,7 +208,9 @@ class WordpressUpdater
 
         $glob = glob($searchPattern);
 
-        $files = array_map('dirname', $glob);
+	$files = array_map('dirname', $glob);
+
+	$files = $this->filterSkipped($files);
 
         if ($only) {
             $files = array_filter($files, function ($siteDir) use ($only) {
