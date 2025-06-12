@@ -186,14 +186,15 @@ class WordpressUpdater
 		    foreach($toSkip as $skipThis) {
 			if (str_starts_with($value, $skipThis)) {
 				$match = false;
+
+				$this->dd("Skipping update for {$skipThis}");
 			}
 		    }
 
 		   return $match;
 	    });
 
-
-	    $this->dd($filtered, true);
+		return $filtered;
     }
     /**
      * return a list of directories under $siteRoot 
