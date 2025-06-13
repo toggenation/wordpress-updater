@@ -313,11 +313,13 @@ class WordpressUpdater
     {
         $only = $this->parseArguments($args)['options']['only'] ?? false;
 
+        $siteRoot = $this->siteRoot;
+
         if (!is_string($only) || empty($only)) {
-            throw new Exception("Invalid only options passed. Must be --only=dirname");
+            throw new Exception("Invalid `only` options passed. Must be --only=dirname");
         }
-        if (!empty($only) && !is_dir($this->siteRoot . '/' . $only)) {
-            throw new Exception("'{$only}' is not a valid site directory");
+        if (!empty($only) && !is_dir($siteRoot . '/' . $only)) {
+            throw new Exception("'{$only}' is not a valid site directory under {$siteRoot}");
         }
 
         return $only;
