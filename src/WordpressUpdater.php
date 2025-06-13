@@ -190,13 +190,15 @@ class WordpressUpdater
         $dirList = array_map('dirname', $filesArray);
 
         if ($only) {
-            $dirList = array_filter($filesArray, function ($siteDir) use ($only) {
+            $dirList = array_filter($dirList, function ($siteDir) use ($only) {
                 $onlyDir = $this->siteRoot . '/' . $only;
                 return str_starts_with($siteDir, $onlyDir);
             });
 
             $dirList = array_values($dirList);
-            $this->debug($dirList, true);
+
+            $this->debug("Directories found: " . join(', ', $dirList));
+
             return $dirList;
         }
 
@@ -205,7 +207,7 @@ class WordpressUpdater
             return $this->siteRoot . '/' . $siteSlug;
         }, $this->skipUpdate);
 
-        $filtered = array_filter($filesArray, function ($value) use ($toSkip) {
+        $filtered = array_filter($dirList, function ($value) use ($toSkip) {
             $match = true;
 
             foreach ($toSkip as $skipThis) {
@@ -219,10 +221,9 @@ class WordpressUpdater
             return $match;
         });
 
+        // re-index
         $filtered = array_values($filtered);
 
-        $this->debug($filtered, true);
-        // re-index
         return $filtered;
     }
 
@@ -309,31 +310,34 @@ class WordpressUpdater
         return $this->siteRoot;
     }
 
-    public function parseOnly($args)
+    public function parseOnly($args): ?string
     {
-        $only = $this->parseArguments($args)['options']['only'] ?? false;
+        $only = $this->parseArguments($args)['options']['only'] ?? null;
+
+        if (is_bool($only) || empty($only)) {
+            return null;
+        }
 
         $siteRoot = $this->siteRoot;
 
-        if (!is_string($only) || empty($only)) {
-            throw new Exception("Invalid `only` options passed. Must be --only=dirname");
-        }
         if (!empty($only) && !is_dir($siteRoot . '/' . $only)) {
             throw new Exception("'{$only}' is not a valid site directory under {$siteRoot}");
         }
 
         return $only;
     }
+
     public static function run(array $arguments)
     {
         $wpu = new WordpressUpdater();
 
         $siteRoot = $wpu->parseSiteRoot($arguments);
 
-        $wpu->debug('Command line arguments');
-        $wpu->debug($arguments);
+        $wpu->debug('Command line arguments: ' . join(', ', $arguments));
 
         $siteDirs = $wpu->getSites($siteRoot, $arguments);
+
+        $wpu->debug("Sites to process: " . join(', ', $siteDirs));
 
         foreach ($siteDirs as $siteDir) {
             $wpu->setSiteDir($siteDir);
