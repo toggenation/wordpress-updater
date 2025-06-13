@@ -22,8 +22,9 @@ use Exception;
  */
 class WordpressUpdater
 {
-	private string $wp = '';
-	private $skipUpdate = [];
+    private string $wp = '';
+
+    private $skipUpdate = [];
 
     private string $userName = '';
 
@@ -33,44 +34,51 @@ class WordpressUpdater
 
     private string $dirPattern = '/*/web/wp-config.php';
 
-    private array $configSettings = ['SITE_ROOT', 'DIR_PATTERN'];
+    private array $configSettings = ['SITE_ROOT', 'DIR_PATTERN', 'SKIP_UPDATE'];
 
-    private function __construct()
+    public function __construct()
     {
         define('ROOT', realpath(__DIR__ . '/../'));
 
         define('CONFIG', ROOT . '/config');
 
-	define('VENDOR', ROOT . '/vendor');
+        define('VENDOR', ROOT . '/vendor');
 
-	$this->setConfig();
+        $this->setConfig();
 
-	$this->wp = VENDOR . '/wp-cli/wp-cli/bin/wp';
-	    
-        $this->dd("WP-cli path: {$this->wp}");
+        $this->wp = VENDOR . '/wp-cli/wp-cli/bin/wp';
+
+        $this->debug("WP-cli path: {$this->wp}");
     }
 
-    private function setConfig(){
-	$config = include(CONFIG . '/config.php');
-
-	$this->checkConfig($this->configSettings, $config);
-
-	$this->siteRoot = $config['SITE_ROOT'];
-
-	$this->skipUpdate = $config['SKIP_UPDATE'];
-
-	$this->dirPattern = $config['DIR_PATTERN'];
+    public function setSiteDir($siteDir)
+    {
+        $this->siteDir = $siteDir;
     }
 
-    private function checkConfig($config) {
-	    foreach($this->configSettings as $setting) {
-		    if(!in_array($setting, $config)) {
-			    throw new \InvalidArgumentException("Missing $setting from config array");
-		    }
-	    }
+    private function setConfig()
+    {
+        $config = include(CONFIG . '/config.php');
+
+        $this->checkConfig($this->configSettings, $config);
+
+        $this->siteRoot = $config['SITE_ROOT'];
+
+        $this->skipUpdate = $config['SKIP_UPDATE'] ?? [];
+
+        $this->dirPattern = $config['DIR_PATTERN'];
     }
 
-    private function dd($content, $die = false)
+    private function checkConfig($config)
+    {
+        foreach ($this->configSettings as $setting) {
+            if (!in_array($setting, $config)) {
+                throw new \InvalidArgumentException("Missing $setting from config array");
+            }
+        }
+    }
+
+    public function debug($content, $die = false)
     {
         $line = debug_backtrace()[0]['line'];
 
@@ -83,7 +91,7 @@ class WordpressUpdater
         }
     }
 
-    private function getSiteUrl()
+    public function getSiteUrl()
     {
         return  $this->exec(['option', 'get', 'siteurl']);
     }
@@ -105,7 +113,7 @@ class WordpressUpdater
 
     private function updateLanguageCore()
     {
-	    return $this->exec(['language', 'core', 'update']);
+        return $this->exec(['language', 'core', 'update']);
     }
 
 
@@ -166,58 +174,109 @@ class WordpressUpdater
         };
     }
 
-    private function setSiteOwnerUserName(): void
+    public function setSiteOwnerUserName(): void
     {
         $stats = lstat($this->siteDir);
 
         $this->userName = posix_getpwuid($stats['uid'])['name'];
     }
 
-
-    private function filterSkipped(array $filesArray = []): array 
+    private function filterSkipped(array $filesArray = [], ?string $only = null): array
     {
-	    $toSkip = array_map(function($siteSlug) {
-		    return $this->siteRoot . '/' . $siteSlug ;
-	    }, $this->skipUpdate);
+        # ignores SKIP_UPDATE and runs against whatever is specified in `--only='
+        # composer wpu -- --only=dir1
 
-	    $filtered = array_filter($filesArray, function($value) use ($toSkip) {
-		   $match = true;
+        // Makes /var/web/site1/web/wp-config.php into /var/web/site1/web
+        $dirList = array_map('dirname', $filesArray);
 
-		    foreach($toSkip as $skipThis) {
-			if (str_starts_with($value, $skipThis)) {
-				$match = false;
+        if ($only) {
+            $dirList = array_filter($filesArray, function ($siteDir) use ($only) {
+                $onlyDir = $this->siteRoot . '/' . $only;
+                return str_starts_with($siteDir, $onlyDir);
+            });
 
-				$this->dd("Skipping update for {$skipThis}");
-			}
-		    }
+            $dirList = array_values($dirList);
+            $this->debug($dirList, true);
+            return $dirList;
+        }
 
-		   return $match;
-	    });
+        # when running automated skip any dirs found in SKIP_UPDATE config setting
+        $toSkip = array_map(function ($siteSlug) {
+            return $this->siteRoot . '/' . $siteSlug;
+        }, $this->skipUpdate);
 
-		return $filtered;
+        $filtered = array_filter($filesArray, function ($value) use ($toSkip) {
+            $match = true;
+
+            foreach ($toSkip as $skipThis) {
+                if (str_starts_with($value, $skipThis)) {
+                    $match = false;
+
+                    $this->debug("Skipping update for {$skipThis}");
+                }
+            }
+
+            return $match;
+        });
+
+        $filtered = array_values($filtered);
+
+        $this->debug($filtered, true);
+        // re-index
+        return $filtered;
     }
+
+    private function getSearchPattern(string $siteRoot): string
+    {
+        return $siteRoot . $this->dirPattern;
+    }
+
+    private function parseArguments($args)
+    {
+        $options = [];
+        $flags = [];
+        $arguments = [];
+
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--')) {
+                // Long option with value
+                if (str_contains($arg, '=')) {
+                    [$key, $value] = explode('=', substr($arg, 2), 2);
+                    $options[$key] = $value;
+                } else {
+                    $options[substr($arg, 2)] = true;
+                }
+            } elseif (str_starts_with($arg, '-')) {
+                // Short flag(s)
+                $flags[] = substr($arg, 1);
+            } else {
+                // Positional argument
+                $arguments[] = $arg;
+            }
+        }
+
+        $parsedArgs = compact('options', 'arguments', 'flags');
+
+        return $parsedArgs;
+    }
+
+
     /**
      * return a list of directories under $siteRoot 
      * that contain a wp-config.php
      * @return array
      */
-    private function getSites(?string $siteRoot = null, ?string $only = null): array
+    private function getSites(?string $siteRoot = null, ?array $arguments = null): array
     {
-        $searchPattern = $siteRoot . $this->dirPattern;
+        $only = $this->parseOnly($arguments);
 
-        $this->dd("Looking for sites in {$searchPattern}");
+        $searchPattern = $this->getSearchPattern($siteRoot);
 
-        $glob = glob($searchPattern);
+        $this->debug("Searching for sites using pattern: `{$searchPattern}`");
 
-	$files = array_map('dirname', $glob);
+        $foundSites = glob($searchPattern);
 
-	$files = $this->filterSkipped($files);
-
-        if ($only) {
-            $files = array_filter($files, function ($siteDir) use ($only) {
-                return strpos($siteDir, "/{$only}/") !== false;
-            });
-        }
+        $files = $this->filterSkipped($foundSites, $only);
 
         if (empty($files)) {
             throw new Exception("No valid wordpress installs found in $siteRoot");
@@ -230,15 +289,14 @@ class WordpressUpdater
     {
         foreach ($arguments as $arg) {
             if (strpos($arg, "--{$argument}=") !== false) {
-                $argVal =  explode('=', $arg)[1];
-                return $argVal;
+                return explode('=', $arg)[1];
             }
         }
 
         return null;
     }
 
-    private function parseSiteRoot($args)
+    public function parseSiteRoot($args)
     {
         $siteRoot = $this->findArg('root', $args);
 
@@ -251,36 +309,40 @@ class WordpressUpdater
         return $this->siteRoot;
     }
 
-    private function parseOnly($args)
+    public function parseOnly($args)
     {
-        $only = $this->findArg('only', $args);
+        $only = $this->parseArguments($args)['options']['only'] ?? false;
 
+        if (!is_string($only) || empty($only)) {
+            throw new Exception("Invalid only options passed. Must be --only=dirname");
+        }
         if (!empty($only) && !is_dir($this->siteRoot . '/' . $only)) {
             throw new Exception("'{$only}' is not a valid site directory");
         }
 
         return $only;
     }
-    public static function run(Event $event)
+    public static function run(array $arguments)
     {
         $wpu = new WordpressUpdater();
 
-        $siteRoot = $wpu->parseSiteRoot($event->getArguments());
+        $siteRoot = $wpu->parseSiteRoot($arguments);
 
-        $only = $wpu->parseOnly($event->getArguments());
+        $wpu->debug('Command line arguments');
+        $wpu->debug($arguments);
 
-        $siteDirs = $wpu->getSites($siteRoot, $only);
+        $siteDirs = $wpu->getSites($siteRoot, $arguments);
 
         foreach ($siteDirs as $siteDir) {
-            $wpu->siteDir = $siteDir;
+            $wpu->setSiteDir($siteDir);
             $wpu->setSiteOwnerUserName();
             $wpu->getSiteUrl();
             $wpu->updatePlugins();
             $wpu->updateThemes();
-	    $wpu->updateCore();
-	    $wpu->updateLanguageCore();
-	    $wpu->flushCache();
-	    $wpu->clearCliCache();
+            $wpu->updateCore();
+            $wpu->updateLanguageCore();
+            $wpu->flushCache();
+            $wpu->clearCliCache();
         }
     }
 }

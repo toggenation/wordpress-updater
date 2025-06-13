@@ -1,28 +1,26 @@
 # Wordpress Update Scripts
 
-A Shell script and PHP script to run Theme, Core and Plugin updates from `crontab`
-
-## Shell Script Setup
-
-1. Install wp-cli and set path to it in SITES_ROOT in `update-wp.sh`
-2. Set the root of your sites in the script
 
 
-## Shell Script Usage
-To be prompted to do each core, plugin or theme update
-
-```sh
-update-wp.sh 
-```
-
-To just install everything with no prompting
-
-```sh
-update-wp.sh y
-```
 
 ## PHP Script Setup
 Clone this repo the run `composer install` to pull in the dependencies
+
+## Edit config.php
+
+```sh
+cp config/config.example.php config/config.php
+```
+
+```php
+# config/config.php edit to taste
+# see notes in config/config.example.php
+return [
+	'SITE_ROOT' => '/var/sites',
+	'DIR_PATTERN' => '/*/public_html/wp-config.php',
+	'SKIP_UPDATE' => ['www.example2.com']
+];
+```
 
 ## PHP Script Usage
 See below for `sudo` setup
@@ -32,14 +30,27 @@ Run composer which will call the `Toggenation\WordpressUpdater::run` method as f
 composer wpu
 ```
 
+To only run update on one site
+
+```sh
+composer wpu -- --only=sitedir
+
+# e.g. if you have multiple sites
+
+/sites/dir1/web
+/sites/dir2/web
+/sites/dir3/web
+
+# to only do dir2 run
+composer wpu -- --only=dir2
+```
+
 ## sudo Setup
-To successfully update each Wordpress site and not run `WordpressUpdater::run()` as `root` requires whichever user you run the script as to be able sudo as the owner of the wordpress directory
+To successfully update each Wordpress site and NOT run `WordpressUpdater::run()` as `root` requires the user you want to run the script as to be able `sudo` as the owner of the wordpress directory
 
-Both scripts (.sh and .php) use `sudo` to elevate to the owner of the wordpress directory
+So if `siteRoot` is `/sites/public_html/www`
 
-So if siteRoot is `/sites/public_html/www`
-
-Contents of the siteRoot folder might be:
+Contents of the `siteRoot` folder might be:
 
 ```
 drwxr-xr-x  5 user1    user1    4096 May 21  2021 user1

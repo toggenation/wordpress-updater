@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 # copy to config.php and edit to match your site root
 # For example if your layout is as follows then SITE_ROOT and DIR_PATTERN are as below
@@ -8,7 +8,6 @@
 
 return [
 	'SITE_ROOT' => '/var/sites',
-	'DIR_PATTERN' => '/*/public_html/wp-config.php'
+	'DIR_PATTERN' => '/*/public_html/wp-config.php',
+	'SKIP_UPDATE' => ['www.example2.com']
 ];
-
-

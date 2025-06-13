@@ -20,10 +20,13 @@
     },
     "scripts": {
         "wpu": [
-            "Toggenation\\WordpressUpdater::run"
+            "Toggenation\\WordpressUpdaterComposer::run"
         ]
     },
     "scripts-descriptions": {
-        "wpu": "Run wp-cli update on all wordpress sites"
+        "wpu": "Run wp-cli update on all Wordpress sites"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12"
     }
 }
