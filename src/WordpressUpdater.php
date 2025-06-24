@@ -34,7 +34,7 @@ class WordpressUpdater
 
     private string $dirPattern = '/*/web/wp-config.php';
 
-    private array $configSettings = ['SITE_ROOT', 'DIR_PATTERN', 'SKIP_UPDATE'];
+    private array $configSettings = ['SITE_ROOT', 'DIR_PATTERN', 'SKIP_UPDATE', 'WP_CLI'];
 
     public function __construct()
     {
@@ -45,9 +45,7 @@ class WordpressUpdater
         define('VENDOR', ROOT . '/vendor');
 
         $this->setConfig();
-
-        $this->wp = VENDOR . '/wp-cli/wp-cli/bin/wp';
-
+       
         $this->debug("WP-cli path: {$this->wp}");
     }
 
@@ -66,7 +64,10 @@ class WordpressUpdater
 
         $this->skipUpdate = $config['SKIP_UPDATE'] ?? [];
 
-        $this->dirPattern = $config['DIR_PATTERN'];
+	$this->dirPattern = $config['DIR_PATTERN'];
+
+	$this->wp = $config['WP_CLI'];
+
     }
 
     private function checkConfig($config)

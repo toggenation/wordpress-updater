@@ -9,5 +9,6 @@
 return [
 	'SITE_ROOT' => '/var/sites',
 	'DIR_PATTERN' => '/*/public_html/wp-config.php',
-	'SKIP_UPDATE' => ['www.example2.com']
+	'SKIP_UPDATE' => ['www.example2.com'],
+	'WP_CLI' => '/path/to/wpi-cli/wp'
 ];
