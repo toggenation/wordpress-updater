@@ -133,6 +133,36 @@ class WordpressUpdater
         return $this->exec(['cache', 'flush', 'all']);
     }
 
+    private function clearFastestCache()
+    {
+	    $command = ['fastest-cache', 'clear', 'all'];
+	    
+	    if(!$this->hasCommand($command)) {
+		    return;
+	    }
+
+	echo "Clearing fastest-cache\n";
+
+	$this->exec($command);
+
+    }
+
+    private function hasCommand(array $command): bool
+    {
+		$command = array_merge(
+			['cli', 'has-command'],
+			$command
+		);
+
+	    if($this->exec($command) === 0) {
+		    echo join(' ', $command) . ' exists' . PHP_EOL;
+		   return true;
+	   }
+	   
+	   return false;	   
+	
+    }
+
     /**
      * Builds a command line for wp-cli
      * ## Example
@@ -168,11 +198,13 @@ class WordpressUpdater
             )
         );
 
-        $exec = exec($cmd, $output);
+        exec($cmd, $output, $resultCode);
 
         foreach ($output as $out) {
             echo "$out\n";
-        };
+	};
+
+	return $resultCode;
     }
 
     public function setSiteOwnerUserName(): void
@@ -349,7 +381,8 @@ class WordpressUpdater
             $wpu->updateCore();
             $wpu->updateLanguageCore();
             $wpu->flushCache();
-            $wpu->clearCliCache();
+	    $wpu->clearCliCache();
+	    $wpu->clearFastestCache();
         }
     }
 }
