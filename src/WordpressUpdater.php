@@ -45,7 +45,7 @@ class WordpressUpdater
         define('VENDOR', ROOT . '/vendor');
 
         $this->setConfig();
-       
+
         $this->debug("WP-cli path: {$this->wp}");
     }
 
@@ -64,10 +64,9 @@ class WordpressUpdater
 
         $this->skipUpdate = $config['SKIP_UPDATE'] ?? [];
 
-	$this->dirPattern = $config['DIR_PATTERN'];
+        $this->dirPattern = $config['DIR_PATTERN'];
 
-	$this->wp = $config['WP_CLI'];
-
+        $this->wp = $config['WP_CLI'];
     }
 
     private function checkConfig($config)
@@ -94,27 +93,27 @@ class WordpressUpdater
 
     public function getSiteUrl()
     {
-        return  $this->exec(['option', 'get', 'siteurl']);
+        return  $this->execAsSiteOwner(['option', 'get', 'siteurl']);
     }
 
     private function updatePlugins()
     {
-        return $this->exec(['plugin', 'update', '--all']);
+        return $this->execAsSiteOwner(['plugin', 'update', '--all']);
     }
 
     private function updateThemes()
     {
-        return $this->exec(['theme', 'update', '--all']);
+        return $this->execAsSiteOwner(['theme', 'update', '--all']);
     }
 
     private function updateCore()
     {
-        return $this->exec(['core', 'update']);
+        return $this->execAsSiteOwner(['core', 'update']);
     }
 
     private function updateLanguageCore()
     {
-        return $this->exec(['language', 'core', 'update']);
+        return $this->execAsSiteOwner(['language', 'core', 'update']);
     }
 
 
@@ -124,45 +123,25 @@ class WordpressUpdater
      * are not reused for multiple sites so clear the above mentioned directory each run
      *
      */
-    private function clearCliCache()
+    private function clearWpCliCache()
     {
-        return $this->exec(['cli', 'cache', 'clear']);
+        return $this->execAsSiteOwner(['cli', 'cache', 'clear']);
     }
+
+
     private function flushCache()
     {
-        return $this->exec(['cache', 'flush', 'all']);
+
+        return $this->execAsSiteOwner(['cache', 'flush', 'all']);
     }
 
-    private function clearFastestCache()
+    private function flushFastestCache()
     {
-	    $command = ['fastest-cache', 'clear', 'all'];
-	    
-	    if(!$this->hasCommand($command)) {
-		    return;
-	    }
-
-	echo "Clearing fastest-cache\n";
-
-	$this->exec($command);
-
+        if ($this->execAsSiteOwner(['cli', 'has-command', 'fastest-cache clear all']) === 0) {
+            echo 'Clearing WP Fastest Cache' . PHP_EOL;
+            $this->execAsSiteOwner(['fastest-cache', 'clear', 'all', 'and', 'minified']);
+        }
     }
-
-    private function hasCommand(array $command): bool
-    {
-		$command = array_merge(
-			['cli', 'has-command'],
-			$command
-		);
-
-	    if($this->exec($command) === 0) {
-		    echo join(' ', $command) . ' exists' . PHP_EOL;
-		   return true;
-	   }
-	   
-	   return false;	   
-	
-    }
-
     /**
      * Builds a command line for wp-cli
      * ## Example
@@ -182,7 +161,7 @@ class WordpressUpdater
      * @param array $command 
      * @return void 
      */
-    private function exec(array $command)
+    private function execAsSiteOwner(array $command): int
     {
         $cmd = join(
             ' ',
@@ -198,13 +177,15 @@ class WordpressUpdater
             )
         );
 
-        exec($cmd, $output, $resultCode);
+        $result_code = 0;
+
+        $exec = exec($cmd, $output, $result_code);
 
         foreach ($output as $out) {
             echo "$out\n";
-	};
+        };
 
-	return $resultCode;
+        return $result_code;
     }
 
     public function setSiteOwnerUserName(): void
@@ -216,14 +197,8 @@ class WordpressUpdater
 
     private function filterSkipped(array $filesArray = [], ?string $only = null): array
     {
-        # ignores SKIP_UPDATE and runs against whatever is specified in `--only='
-        # composer wpu -- --only=dir1
-
-        // Makes /var/web/site1/web/wp-config.php into /var/web/site1/web
-        $dirList = array_map('dirname', $filesArray);
-
         if ($only) {
-            $dirList = array_filter($dirList, function ($siteDir) use ($only) {
+            $dirList = array_filter($filesArray, function ($siteDir) use ($only) {
                 $onlyDir = $this->siteRoot . '/' . $only;
                 return str_starts_with($siteDir, $onlyDir);
             });
@@ -240,7 +215,7 @@ class WordpressUpdater
             return $this->siteRoot . '/' . $siteSlug;
         }, $this->skipUpdate);
 
-        $filtered = array_filter($dirList, function ($value) use ($toSkip) {
+        $filtered = array_filter($filesArray, function ($value) use ($toSkip) {
             $match = true;
 
             foreach ($toSkip as $skipThis) {
@@ -294,6 +269,25 @@ class WordpressUpdater
         return $parsedArgs;
     }
 
+    private function raiseExceptionIfFindMissing()
+    {
+        $cmd = join(' ', [
+            'wp',
+            'package',
+            'list',
+            '--format=csv',
+            '|',
+            'grep',
+            '-q',
+            'wp-cli/find-command,'
+        ]);
+
+        exec($cmd, $output, $resultCode);
+
+        if ($resultCode !== 0) {
+            throw new Exception('wp-cli/find-command missing. Please install by running `wp package install wp-cli/find-command`');
+        }
+    }
 
     /**
      * return a list of directories under $siteRoot 
@@ -302,19 +296,32 @@ class WordpressUpdater
      */
     private function getSites(?string $siteRoot = null, ?array $arguments = null): array
     {
-        $only = $this->parseOnly($arguments);
+        $this->raiseExceptionIfFindMissing();
 
-        $searchPattern = $this->getSearchPattern($siteRoot);
+        $cmd = join(' ', ['wp', 'find', $siteRoot, '--fields=wp_path', '--format=json']);
 
-        $this->debug("Searching for sites using pattern: `{$searchPattern}`");
+        exec($cmd, $output, $result_code);
 
-        $foundSites = glob($searchPattern);
+        $files = [];
 
-        $files = $this->filterSkipped($foundSites, $only);
+        if ($result_code === 0) {
+            $json = json_decode(join('', $output), true);
+
+            $filtered = array_map(function ($val) {
+                return $val['wp_path'];
+            }, $json);
+
+            $only = $this->parseOnly($arguments);
+
+            $files = $this->filterSkipped($filtered, $only);
+        } else {
+            throw new Exception('Error running: ' . $cmd);
+        }
 
         if (empty($files)) {
             throw new Exception("No valid wordpress installs found in $siteRoot");
         }
+
 
         return $files;
     }
@@ -366,8 +373,6 @@ class WordpressUpdater
 
         $siteRoot = $wpu->parseSiteRoot($arguments);
 
-        $wpu->debug('Command line arguments: ' . join(', ', $arguments));
-
         $siteDirs = $wpu->getSites($siteRoot, $arguments);
 
         $wpu->debug("Sites to process: " . join(', ', $siteDirs));
@@ -381,8 +386,8 @@ class WordpressUpdater
             $wpu->updateCore();
             $wpu->updateLanguageCore();
             $wpu->flushCache();
-	    $wpu->clearCliCache();
-	    $wpu->clearFastestCache();
+            $wpu->flushFastestCache();
+            $wpu->clearWpCliCache();
         }
     }
 }
