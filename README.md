@@ -1,7 +1,4 @@
-# Wordpress Update Scripts
-
-
-
+# Wordpress Updater
 
 ## PHP Script Setup
 Clone this repo the run `composer install` to pull in the dependencies
@@ -17,8 +14,11 @@ cp config/config.example.php config/config.php
 # see notes in config/config.example.php
 return [
 	'SITE_ROOT' => '/var/sites',
-	'DIR_PATTERN' => '/*/public_html/wp-config.php',
-	'SKIP_UPDATE' => ['www.example2.com']
+	// /var/www/sitedir/public_html
+	// enter array of site dirs to skip
+	// to run update on a skipped site use
+	// composer wpu -- --only=sitedir
+	'SKIP_UPDATE' => ['sitedir']
 ];
 ```
 
@@ -35,68 +35,64 @@ To only run update on one site
 ```sh
 composer wpu -- --only=sitedir
 
-# e.g. if you have multiple sites
-
-/sites/dir1/web
-/sites/dir2/web
-/sites/dir3/web
+# e.g. if you have multiple sites such as:
+# /sites/dir1/web
+# /sites/dir2/web
+# /sites/dir3/web
 
 # to only do dir2 run
 composer wpu -- --only=dir2
 ```
 
 ## sudo Setup
-To successfully update each Wordpress site and NOT run `WordpressUpdater::run()` as `root` requires the user you want to run the script as to be able `sudo` as the owner of the wordpress directory
+Do not run composer as `root`
 
-So if `siteRoot` is `/sites/public_html/www`
+`sudo` needs to be setup so the user running the updater can run the update to each Wordpress install as the user that owns each site. 
 
-Contents of the `siteRoot` folder might be:
+So if `siteRoot` is `/var/sites`
 
+The `siteRoot` folder might contain the individual site directories:
 ```
 drwxr-xr-x  5 user1    user1    4096 May 21  2021 user1
 drwxr-xr-x  5 user2    user2    4096 Apr  9  2021 user2
 drwxr-xr-x  5 user3    user3    4096 Aug 12  2020 user3
 ```
 
-`your_username` is the user that you want to run the `WordpressUpdater::run()` script with 
+`wpUpdaterUser` is the user that you want to run the `WordpressUpdater::run()` script as
 
-The `your_username` user needs to be able to sudo the wp-cli as the user who owns Wordpress directory and files:
+Configure the `wpUpdaterUser` user to sudo to a user who has write access to each Wordpress installation.
 
 So add a sudo config file:
 
 ```sh
-visudo -f /etc/sudoers.d/your_username
+visudo -f /etc/sudoers.d/wpUpdaterUser
 ```
 
 
-```
-# Content of /etc/sudoers.d/your_username
-your_username ALL=(ALL) NOPASSWD: /home/your_username/wordpress-updater/vendor/wp-cli/wp-cli/bin 
+```txt
+# Content of /etc/sudoers.d/wpUpdaterUser
+wpUpdaterUser ALL=(ALL) NOPASSWD: /home/wpUpdaterUser/wordpress-updater/vendor/wp-cli/wp-cli/bin 
 ```
 
-Example of sudo running as a different user (user1) to allow update of the wordpress files they own.
+Example of sudo running as a different user (wpUpdaterUser) to allow update of the wordpress files they own.
 
-```
-sudo -u user1 /home/your_username/wordpress-updater/vendor/wp-cli/wp-cli/bin/wp \
+```sh
+sudo -u user1 /home/wpUpdaterUser/wordpress-updater/vendor/wp-cli/wp-cli/bin/wp \
     --path=/sites/public_html/www/user1/wordpress option get siteurl
 ```
 
 
-
-
-## Shell Script Crontab
-
-Once you have successfully configured the script running user for `sudo` you can add a crontab
+## Crontab
+Once you have successfully configured sudo to allow `wpUpdateUser` to `sudo` as each site user, add a `crontab` to call the updater on a schedule
 
 run at 7:05 AM every day
 ```sh
-5 7 * * * /home/rupert/wordpress-updater/update-wp.sh y > /tmp/update-wp.log 2>&1
-```
+# no output
+5 7 * * * composer -d /home/wpUpdateUser/wordpress-updater/ wpu > /tmp/update-wp.log 2>&1
 
-## PHP Script Crontab
-
-run at 7:05 AM every day
-```sh
-5 7 * * * composer -d /home/rupert/wordpress-updater/ wpu > /tmp/update-wp.log 2>&1
+# output and send STDERR and STDOUT as email to whoever is in the MAILTO in your crontab
+# this is handy as you will see failed updates, or updates that fail due to expired licenses
+MAILTO="you@example.com.au"
+5 7 * * * composer -d /home/wpUpdateUser/wordpress-updater/ wpu > 2>&1
 ```
 
