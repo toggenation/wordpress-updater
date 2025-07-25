@@ -1,4 +1,6 @@
 # Wordpress Updater
+Automatically update the core, themes & plugins of multiple Worpress installations using `wp-cli` and `cron`
+
 
 ## PHP Script Setup
 Clone this repo the run `composer install` to pull in the dependencies
@@ -67,7 +69,6 @@ So add a sudo config file:
 ```sh
 visudo -f /etc/sudoers.d/wpUpdaterUser
 ```
-
 
 ```txt
 # Content of /etc/sudoers.d/wpUpdaterUser
