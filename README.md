@@ -72,13 +72,13 @@ visudo -f /etc/sudoers.d/wpUpdaterUser
 
 ```txt
 # Content of /etc/sudoers.d/wpUpdaterUser
-wpUpdaterUser ALL=(ALL) NOPASSWD: /home/wpUpdaterUser/wordpress-updater/vendor/wp-cli/wp-cli/bin 
+wpUpdaterUser ALL=(ALL) NOPASSWD: /home/wpUpdaterUser/wordpress-updater/vendor/bin/wp
 ```
 
 Example of sudo running as a different user (wpUpdaterUser) to allow update of the wordpress files they own.
 
 ```sh
-sudo -u user1 /home/wpUpdaterUser/wordpress-updater/vendor/wp-cli/wp-cli/bin/wp \
+sudo -u user1 /home/wpUpdaterUser/wordpress-updater/vendor/bin/wp \
     --path=/sites/public_html/www/user1/wordpress option get siteurl
 ```
 

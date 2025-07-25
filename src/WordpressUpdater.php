@@ -32,9 +32,7 @@ class WordpressUpdater
 
     private string $siteDir  = '';
 
-    private string $dirPattern = '/*/web/wp-config.php';
-
-    private array $configSettings = ['SITE_ROOT', 'DIR_PATTERN', 'SKIP_UPDATE', 'WP_CLI'];
+    private array $configSettings = ['SITE_ROOT', 'SKIP_UPDATE', 'WP_CLI'];
 
     public function __construct()
     {
