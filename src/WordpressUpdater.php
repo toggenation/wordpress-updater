@@ -134,7 +134,7 @@ class WordpressUpdater
     private function flushOpCache()
     {
         if ($this->execAsSiteOwner(['cli', 'has-command', 'flush-opcache flush']) === 0) {
-            echo 'Clearing WP Fastest Cache' . PHP_EOL;
+            echo 'Clearing Opcode Cache' . PHP_EOL;
             $this->execAsSiteOwner(['flush-opcache', 'flush']);
         }
     }
