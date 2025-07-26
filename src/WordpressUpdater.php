@@ -62,8 +62,6 @@ class WordpressUpdater
 
         $this->skipUpdate = $config['SKIP_UPDATE'] ?? [];
 
-        $this->dirPattern = $config['DIR_PATTERN'];
-
         $this->wp = $config['WP_CLI'];
     }
 
@@ -129,8 +127,16 @@ class WordpressUpdater
 
     private function flushCache()
     {
-
         return $this->execAsSiteOwner(['cache', 'flush', 'all']);
+    }
+
+
+    private function flushOpCache()
+    {
+        if ($this->execAsSiteOwner(['cli', 'has-command', 'flush-opcache flush']) === 0) {
+            echo 'Clearing WP Fastest Cache' . PHP_EOL;
+            $this->execAsSiteOwner(['flush-opcache', 'flush']);
+        }
     }
 
     private function flushFastestCache()
@@ -233,10 +239,6 @@ class WordpressUpdater
         return $filtered;
     }
 
-    private function getSearchPattern(string $siteRoot): string
-    {
-        return $siteRoot . $this->dirPattern;
-    }
 
     private function parseArguments($args)
     {
@@ -298,11 +300,11 @@ class WordpressUpdater
 
         $cmd = join(' ', ['wp', 'find', $siteRoot, '--fields=wp_path', '--format=json']);
 
-        exec($cmd, $output, $result_code);
+        exec($cmd, $output, $resultCode);
 
         $files = [];
 
-        if ($result_code === 0) {
+        if ($resultCode === 0) {
             $json = json_decode(join('', $output), true);
 
             $filtered = array_map(function ($val) {
@@ -319,7 +321,6 @@ class WordpressUpdater
         if (empty($files)) {
             throw new Exception("No valid wordpress installs found in $siteRoot");
         }
-
 
         return $files;
     }
@@ -383,9 +384,10 @@ class WordpressUpdater
             $wpu->updateThemes();
             $wpu->updateCore();
             $wpu->updateLanguageCore();
-            $wpu->flushCache();
-            $wpu->flushFastestCache();
-            $wpu->clearWpCliCache();
+            $wpu->flushCache(); // clear Object Cache 1st
+            $wpu->flushFastestCache(); // clear Page Cache's next
+            $wpu->flushOpCache(); // clear Opcode Cache last
+            $wpu->clearWpCliCache(); // clear the downloaded packages from per user ~/.wp-cli/cache
         }
     }
 }
