@@ -47,7 +47,7 @@ class WordpressUpdater
         $this->debug("WP-cli path: {$this->wp}");
     }
 
-    public function setSiteDir($siteDir)
+    public function setSiteDir(string $siteDir)
     {
         $this->siteDir = $siteDir;
     }
@@ -56,7 +56,7 @@ class WordpressUpdater
     {
         $config = include(CONFIG . '/config.php');
 
-        $this->checkConfig($this->configSettings, $config);
+        $this->checkConfig($config);
 
         $this->siteRoot = $config['SITE_ROOT'];
 
@@ -65,7 +65,7 @@ class WordpressUpdater
         $this->wp = $config['WP_CLI'];
     }
 
-    private function checkConfig($config)
+    private function checkConfig(array $config)
     {
         foreach ($this->configSettings as $setting) {
             if (!in_array($setting, $config)) {
@@ -74,7 +74,7 @@ class WordpressUpdater
         }
     }
 
-    public function debug($content, $die = false)
+    public function debug(mixed $content, $die = false)
     {
         $line = debug_backtrace()[0]['line'];
 
@@ -125,6 +125,17 @@ class WordpressUpdater
     }
 
 
+    private function clearDiviCache(): void
+    {
+        if ($this->execAsSiteOwner(['theme', 'is-active', 'Divi']) === 0) {
+            echo 'Clearing Divi Cache' . PHP_EOL;
+            $this->execAsSiteOwner([
+                'eval',
+                'if ( class_exists( "ET_Core_PageResource" ) ) { ET_Core_PageResource::remove_static_resources( "all", "all" ); } echo "Divi cache cleared.\n";'
+            ]);
+        }
+    }
+
     private function flushCache()
     {
         return $this->execAsSiteOwner(['cache', 'flush', 'all']);
@@ -142,10 +153,9 @@ class WordpressUpdater
     private function flushElementorCache()
     {
         if ($this->execAsSiteOwner(['cli', 'has-command', 'elementor flush_css']) === 0) {
-                echo 'Clearing Elementor CSS Cache' . PHP_EOL;
-                $this->execAsSiteOwner(['elementor', 'flush_css', '--regenerate']);
+            echo 'Clearing Elementor CSS Cache' . PHP_EOL;
+            $this->execAsSiteOwner(['elementor', 'flush_css', '--regenerate']);
         }
-
     }
 
     private function flushFastestCache()
@@ -358,6 +368,7 @@ class WordpressUpdater
         return $this->siteRoot;
     }
 
+
     public function parseOnly($args): ?string
     {
         $only = $this->parseArguments($args)['options']['only'] ?? null;
@@ -397,6 +408,7 @@ class WordpressUpdater
             $wpu->flushFastestCache(); // clear Page Cache's next
             $wpu->flushOpCache(); // clear Opcode Cache last
             $wpu->flushElementorCache(); // clear and regenerate elementor cache
+            $wpu->clearDiviCache(); // clear the Divi CSS if active
             $wpu->clearWpCliCache(); // clear the downloaded packages from per user ~/.wp-cli/cache
         }
     }
