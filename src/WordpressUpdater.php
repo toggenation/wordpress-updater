@@ -55,7 +55,7 @@ class WordpressUpdater
     private function setConfig()
     {
         $config = include(CONFIG . '/config.php');
-
+        
         $this->checkConfig($config);
 
         $this->siteRoot = $config['SITE_ROOT'];
@@ -68,7 +68,7 @@ class WordpressUpdater
     private function checkConfig(array $config)
     {
         foreach ($this->configSettings as $setting) {
-            if (!in_array($setting, $config)) {
+            if (!in_array($setting, array_keys($config))) {
                 throw new \InvalidArgumentException("Missing $setting from config array");
             }
         }
@@ -131,7 +131,7 @@ class WordpressUpdater
             echo 'Clearing Divi Cache' . PHP_EOL;
             $this->execAsSiteOwner([
                 'eval',
-                'if ( class_exists( "ET_Core_PageResource" ) ) { ET_Core_PageResource::remove_static_resources( "all", "all" ); } echo "Divi cache cleared.\n";'
+                '\'if ( class_exists( "ET_Core_PageResource" ) ) { ET_Core_PageResource::remove_static_resources( "all", "all" ); } echo "Divi cache cleared.\n";\''
             ]);
         }
     }
