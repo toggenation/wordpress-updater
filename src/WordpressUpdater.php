@@ -141,10 +141,10 @@ class WordpressUpdater
 
     private function flushElementorCache()
     {
-	    if ($this->execAsSiteOwner(['cli', 'has-command', 'elementor flush_css']) === 0) {
-        	    echo 'Clearing Elementor CSS Cache' . PHP_EOL;
-	            $this->execAsSiteOwner(['elementor', 'flush_css', '--regenerate']);
-	    }
+        if ($this->execAsSiteOwner(['cli', 'has-command', 'elementor flush_css']) === 0) {
+                echo 'Clearing Elementor CSS Cache' . PHP_EOL;
+                $this->execAsSiteOwner(['elementor', 'flush_css', '--regenerate']);
+        }
 
     }
 
@@ -395,8 +395,8 @@ class WordpressUpdater
             $wpu->updateLanguageCore();
             $wpu->flushCache(); // clear Object Cache 1st
             $wpu->flushFastestCache(); // clear Page Cache's next
-	    $wpu->flushOpCache(); // clear Opcode Cache last
-	    $wpu->flushElementorCache(); // clear and regenerate elementor cache
+            $wpu->flushOpCache(); // clear Opcode Cache last
+            $wpu->flushElementorCache(); // clear and regenerate elementor cache
             $wpu->clearWpCliCache(); // clear the downloaded packages from per user ~/.wp-cli/cache
         }
     }
