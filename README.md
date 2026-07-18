@@ -11,7 +11,7 @@ Automatically update the core, themes & plugins of multiple Worpress installatio
 > ***You may need to tweak CSS settings or re-implement some display elements as vendor updates change the way things display.***
 > \
 > \
-> Often changes are due to stale cached Javascript or CSS so this script does endeavour to clear any caches it knows about.
+> Often styling and display changes are due to stale cached Javascript or CSS so this script does endeavour to clear any caches it knows about, and generally doing automatic updates hasn't caused too many problems.
 
 ## Features
 - Loop through each hosted website and run `wp-cli` as the website user or each site
