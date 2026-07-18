@@ -3,8 +3,11 @@ Automatically update the core, themes & plugins of multiple Worpress installatio
 
 > [!WARNING]
 > Automatically updating Wordpres core, themes and plugins can and does sometimes change the look of your site.
+> \
 > I've had several instances where Elementor sites have broken due to the auto-updates applied by this script. But I consider the security benefits (running most recent patched code) to be better than a widely out-of-date site running vulnerable code.
+> \
 > You may need to tweak CSS settings or re-implement some display elements as vendor updates change the way things work.
+> \
 > Often changes are due to stale cached Javascript or CSS so this script does endeavour to clear any caches it knows about.
 
 ## Features
