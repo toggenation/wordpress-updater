@@ -2,7 +2,7 @@
 Automatically update the core, themes & plugins of multiple Worpress installations using `wp-cli` and `cron`
 
 > [!WARNING]
-> Automatically updating Wordpres core, themes and plugins can and does sometimes change the look of your site.
+> Automatically updating Wordpress core, themes and plugins can and does sometimes change the look of your site.
 > \
 > \
 > I've had several instances where Elementor sites have broken due to the auto-updates applied by this script. But I consider the security benefits (running most recent patched code) to be better than a widely out-of-date site running vulnerable code.
