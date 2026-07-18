@@ -1,6 +1,16 @@
 # Wordpress Updater
 Automatically update the core, themes & plugins of multiple Worpress installations using `wp-cli` and `cron`
 
+> [!WARNING]
+> Automatically updating Wordpres core, themes and plugins can and does sometimes change the look of your site.
+> I've had several instances where Elementor sites have broken due to the auto-updates applied by this script. But I consider the security benefits (running most recent patched code) to be better than a widely out-of-date site running vulnerable code.
+> You may need to tweak CSS settings or re-implement some display elements as vendor updates change the way things work.
+> Often changes are due to stale cached Javascript or CSS so this script does endeavour to clear any caches it knows about.
+
+## Features
+- Loop through each hosted website and run `wp-cli` as the website user or each site
+- Clear the various caches so Wordpress can rebuild them (CSS, OPCache, Divi, Elementor, WP Total Cache)
+- Clear the wp-cli cache after running
 
 ## PHP Script Setup
 Clone this repo the run `composer install` to pull in the dependencies
